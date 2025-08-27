@@ -1,0 +1,56 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Manus AI</title>
+  </head>
+  <body>
+    <h1>Manus AI Desktop</h1>
+    <p>Click the button to launch the local Python backend (not implemented in scaffold).</p>
+    <button id="launch">Launch Backend</button>
+    <button id="stop">Stop Backend</button>
+    <div>
+      <input id="query" placeholder="Type a query" />
+      <button id="send">Send</button>
+      <pre id="result"></pre>
+    </div>
+    <script>
+      const launch = document.getElementById('launch')
+      const stop = document.getElementById('stop')
+      const send = document.getElementById('send')
+      const q = document.getElementById('query')
+      const res = document.getElementById('result')
+
+      launch.addEventListener('click', async () => {
+        launch.disabled = true
+        window.backend.start((msg) => console.log('Backend:', msg))
+        // poll health
+        let ready = false
+        for (let i=0;i<20;i++){
+          try{
+            const r = await fetch('http://127.0.0.1:5000/health')
+            if (r.ok){ ready = true; break }
+          }catch(e){ /* ignore */ }
+          await new Promise(r => setTimeout(r, 300))
+        }
+        if (!ready){
+          alert('Backend did not start in time')
+          launch.disabled = false
+        } else {
+          alert('Backend ready')
+        }
+      })
+      stop.addEventListener('click', () => window.backend.stop())
+      send.addEventListener('click', async () => {
+        const input = q.value
+        const resp = await fetch('http://127.0.0.1:5000/predict', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ input })
+        })
+        const j = await resp.json()
+        res.textContent = JSON.stringify(j)
+      })
+    </script>
+  </body>
+</html>
